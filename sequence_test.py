@@ -31,16 +31,34 @@ def set_actuators(ser, selected, psi):
             send_cmd(ser, f"ex 0 {addr}")
 
 
-SEQUENCE = [
+ROLLING_SEQUENCE = [
     {"actuators": [18],         "psi": 5, "time": 3},
-    {"actuators": [18, 19],     "psi": 3, "time": 3},
+    {"actuators": [18, 12],     "psi": 3, "time": 3},
+    {"actuators": [12],         "psi": 5, "time": 3},
+    {"actuators": [12, 19],     "psi": 3, "time": 3},
     {"actuators": [19],         "psi": 5, "time": 3},
     {"actuators": [19, 15],     "psi": 3, "time": 3},
     {"actuators": [15],         "psi": 5, "time": 3},
-    {"actuators": [15, 12],     "psi": 3, "time": 3},
-    {"actuators": [12],         "psi": 5, "time": 3},
-    {"actuators": [12, 18],     "psi": 3, "time": 3},
+    {"actuators": [15, 18],     "psi": 3, "time": 3},
 ]
+
+INCHING_SEQUENCE = [
+    {"actuators": [15, 12], "psi": 5, "time": 1},
+    {"actuators": [15, 12], "psi": 0, "time": 1.5},
+]
+
+STRAFING_SEQUENCE = [
+    {"actuators": [18],         "psi": 5, "time": 1},
+    {"actuators": [18, 12],     "psi": 5, "time": 1},
+    {"actuators": [12],         "psi": 5, "time": 1},
+    {"actuators": [12, 19],     "psi": 5, "time": 1},
+    {"actuators": [19],         "psi": 5, "time": 1},
+    {"actuators": [19, 15],     "psi": 5, "time": 1},
+    {"actuators": [15],         "psi": 5, "time": 1},
+    {"actuators": [15, 18],     "psi": 5, "time": 1},
+]
+
+SEQUENCE = INCHING_SEQUENCE
 
 
 def run_sequence(ser, sequence, loop=False):
