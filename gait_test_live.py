@@ -18,7 +18,7 @@ KEY_TO_ACTUATOR = {
     "d": 12,
 }
 
-TARGET_PSI = 5
+TARGET_PSI = 7
 
 # Track currently pressed keys
 pressed_keys = set()

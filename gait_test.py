@@ -14,9 +14,9 @@ TOP_ACTUATORS = [15, 12]
 BOTTOM_ACTUATORS = [18, 19]
 
 KEY_TO_ACTUATOR = {
-    "w": 18,
-    "a": 19,
-    "s": 15,
+    "w": 19,
+    "a": 15,
+    "s": 18,
     "d": 12,
 }
 
