@@ -10,15 +10,15 @@ PORT = "COM4"
 BAUD = 115200
 
 # ===== Arduino pressure sensor =====
-ARD_PORT = "COM8"
+ARD_PORT = "COM3"
 ARD_BAUD = 115200
 
 # ===== Power supply =====
-PSU_PORT = "COM19"
+PSU_PORT = "COM5"
 PSU_BAUD = 115200
 
 # ===== SAVE SETTINGS =====
-SAVE_DIR = r"C:\Users\askar\University of Michigan Dropbox\ENGIN-freelab\people\ahusaini\twolink\sequence_logs"
+SAVE_DIR = r"C:\Users\askar\University of Michigan Dropbox\ENGIN-freelab\people\ahusaini\actuator\twolink\sequence_logs"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 SAMPLE_HZ = 10
@@ -257,6 +257,22 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
     print(f"\nSaved CSV file:\n{filename}")
 
 
+def start_pump(pump_ser):
+
+    print("\nStarting pump...")
+
+    pump_ser.write(b"p\n")
+    pump_ser.flush()
+
+
+def stop_pump(pump_ser):
+
+    print("\nStopping pump...")
+
+    pump_ser.write(b"x\n")
+    pump_ser.flush()
+
+
 # ===== SEQUENCES =====
 
 ROLLING_SEQUENCE = [
@@ -271,8 +287,10 @@ ROLLING_SEQUENCE = [
 ]
 
 INCHING_SEQUENCE = [
-    {"actuators": [15, 12], "psi": 5, "time": 1},
-    {"actuators": [],       "psi": 0, "time": 1.5},
+    {"actuators": [15, 12], "psi": 5, "time": 1.5},
+    {"actuators": [],       "psi": 0, "time": 2.5}
+
+    ,
 ]
 
 STRAFING_SEQUENCE = [
@@ -350,6 +368,28 @@ def main():
 
     try:
 
+        print("\n========================================")
+        print("SYSTEM READY")
+        print("========================================")
+        print("Logging has started.")
+        print("Pressure/current data is being recorded.")
+        print("")
+        print("You may now:")
+        print("  - start the pump")
+        print("  - manually inflate the robot")
+        print("  - monitor live pressure readings")
+        print("")
+        print("Press ENTER to begin automated sequence.")
+        print("Press Ctrl+C to quit.")
+        print("========================================\n")
+
+        # Optional automatic pump start
+        # start_pump(ard_ser)
+
+        input()
+
+        print("\nStarting sequence...\n")
+
         run_sequence(ser, SEQUENCE, loop=True)
 
     except KeyboardInterrupt:
@@ -362,6 +402,12 @@ def main():
         logger_thread.join()
 
         exhaust_all(ser)
+
+        try:
+            stop_pump(ard_ser)
+            print("Pump closed.")
+        except:
+            pass
 
         ser.close()
         ard_ser.close()

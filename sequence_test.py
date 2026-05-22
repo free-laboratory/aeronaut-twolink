@@ -43,8 +43,8 @@ ROLLING_SEQUENCE = [
 ]
 
 INCHING_SEQUENCE = [
-    {"actuators": [15, 12], "psi": 5, "time": 1},
-    {"actuators": [15, 12], "psi": 0, "time": 1.5},
+    {"actuators": [15, 12], "psi": 5, "time": 1.5},
+    {"actuators": [15, 12], "psi": 0, "time": 2.5},
 ]
 
 STRAFING_SEQUENCE = [
