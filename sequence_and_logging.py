@@ -9,7 +9,7 @@ from datetime import datetime
 PORT = "COM4"
 BAUD = 115200
 
-# ===== Arduino pressure sensor =====
+# ===== Arduino pressure sensor + pump =====
 ARD_PORT = "COM3"
 ARD_BAUD = 115200
 
@@ -30,11 +30,18 @@ ACTUATORS = [19, 15, 18, 12]
 
 # ===== THREAD-SAFE COMMAND LOGGING =====
 command_lock = threading.Lock()
+
 latest_command_text = ""
-latest_actuator_cmds = {addr: "" for addr in ACTUATORS}
+latest_pump_state = 0
+
+latest_actuator_cmds = {
+    addr: ""
+    for addr in ACTUATORS
+}
 
 
 def update_command_log(cmd):
+
     global latest_command_text
 
     with command_lock:
@@ -46,12 +53,14 @@ def update_command_log(cmd):
         try:
 
             if parts[0].startswith("bb"):
+
                 addr = int(parts[1])
 
                 if addr in latest_actuator_cmds:
                     latest_actuator_cmds[addr] = cmd.strip()
 
             elif parts[0] in ["ex", "sp", "ss", "in"]:
+
                 addr = int(parts[2])
 
                 if addr in latest_actuator_cmds:
@@ -73,6 +82,7 @@ def send_cmd(ser, cmd):
     time.sleep(0.02)
 
     while ser.in_waiting:
+
         line = ser.readline().decode(errors="ignore").strip()
 
         if line:
@@ -142,24 +152,43 @@ def _drain_latest_line(ser):
     return line
 
 
-def parse_arduino_pressure(line):
+def parse_arduino_line(line):
 
-    if line and (not line.lower().startswith("time_s")) and (not line.startswith("#")):
+    """
+    Expected Arduino format:
+    time_s,pressure_psi,pump_on
+
+    Example:
+    12.532,4.87,1
+    """
+
+    if (
+        line
+        and (not line.lower().startswith("time_s"))
+        and (not line.startswith("#"))
+    ):
 
         parts = line.split(",")
 
-        if len(parts) >= 2:
+        if len(parts) >= 3:
 
             try:
-                return float(parts[1])
+
+                ard_time = float(parts[0])
+                pressure = float(parts[1])
+                pump_on = int(parts[2])
+
+                return ard_time, pressure, pump_on
 
             except:
                 pass
 
-    return None
+    return None, None, None
 
 
 def pressure_logger(ard_ser, psu_ser, stop_event, filename):
+
+    global latest_pump_state
 
     f = open(filename, "w", newline="", encoding="utf-8")
     w = csv.writer(f)
@@ -167,8 +196,10 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
     header = [
         "timestamp",
         "t_seconds",
+        "arduino_time_s",
         "arduino_raw_line",
         "pressure_psig",
+        "pump_on",
         "voltage_V",
         "current_A",
         "latest_command"
@@ -192,7 +223,10 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
 
         line = _drain_latest_line(ard_ser)
 
-        pressure = parse_arduino_pressure(line)
+        ard_time, pressure, pump_on = parse_arduino_line(line)
+
+        if pump_on is not None:
+            latest_pump_state = pump_on
 
         voltage = query_psu(psu_ser, b"MEAS:VOLT?")
         current = query_psu(psu_ser, b"MEAS:CURR?")
@@ -211,8 +245,10 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
         w.writerow([
             timestamp,
             f"{t:.4f}",
+            ard_time,
             line,
             pressure,
+            latest_pump_state,
             voltage,
             current,
             cmd_text,
@@ -224,12 +260,15 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
         else:
             pressure_text = "no valid reading"
 
+        pump_text = "ON" if latest_pump_state == 1 else "OFF"
+
         if voltage is not None and current is not None:
 
             print(
                 f"[log] "
                 f"t={t:.2f}s | "
                 f"pressure={pressure_text} | "
+                f"pump={pump_text} | "
                 f"V={voltage:.3f} V | "
                 f"I={current:.3f} A"
             )
@@ -240,6 +279,7 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
                 f"[log] "
                 f"t={t:.2f}s | "
                 f"pressure={pressure_text} | "
+                f"pump={pump_text} | "
                 f"V/I unavailable"
             )
 
@@ -257,19 +297,13 @@ def pressure_logger(ard_ser, psu_ser, stop_event, filename):
     print(f"\nSaved CSV file:\n{filename}")
 
 
+# ===== PUMP CONTROL =====
+
 def start_pump(pump_ser):
 
-    print("\nStarting pump...")
+    print("\nStarting pump (30 second timed run)...")
 
     pump_ser.write(b"p\n")
-    pump_ser.flush()
-
-
-def stop_pump(pump_ser):
-
-    print("\nStopping pump...")
-
-    pump_ser.write(b"x\n")
     pump_ser.flush()
 
 
@@ -288,9 +322,7 @@ ROLLING_SEQUENCE = [
 
 INCHING_SEQUENCE = [
     {"actuators": [15, 12], "psi": 5, "time": 1.5},
-    {"actuators": [],       "psi": 0, "time": 2.5}
-
-    ,
+    {"actuators": [],       "psi": 0, "time": 2.5},
 ]
 
 STRAFING_SEQUENCE = [
@@ -375,18 +407,22 @@ def main():
         print("Pressure/current data is being recorded.")
         print("")
         print("You may now:")
-        print("  - start the pump")
-        print("  - manually inflate the robot")
-        print("  - monitor live pressure readings")
+        print("  - manually monitor pressure")
+        print("  - verify pump operation")
+        print("  - check PSU readings")
         print("")
-        print("Press ENTER to begin automated sequence.")
+        print("Press ENTER to:")
+        print("  1. Start the 30-second pump run")
+        print("  2. Begin the automated sequence")
+        print("")
         print("Press Ctrl+C to quit.")
         print("========================================\n")
 
-        # Optional automatic pump start
-        # start_pump(ard_ser)
-
         input()
+
+        start_pump(ard_ser)
+
+        time.sleep(0.5)
 
         print("\nStarting sequence...\n")
 
@@ -402,12 +438,6 @@ def main():
         logger_thread.join()
 
         exhaust_all(ser)
-
-        try:
-            stop_pump(ard_ser)
-            print("Pump closed.")
-        except:
-            pass
 
         ser.close()
         ard_ser.close()
