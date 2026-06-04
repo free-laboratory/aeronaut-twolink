@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DEVICE_ADDR 18 // 1. start here first to configure the actuator ID
-#define DEBUG_MODE 0 //2. 1 is arduino mode, 0 to sent to rs485
+#define DEVICE_ADDR 20 // 1. start here first to configure the actuator ID
+#define DEBUG_MODE 1 //2. 1 is arduino mode, 0 to sent to rs485
 
 
 #define LF 0x0A
 #define p_sense A1
-#define v_in 7 // 3a. check the case statements for the respective actuator first. change this if the inlet outlet is swapped
-#define v_out 8 //3b. change this if the inlet outlet is swapped
+#define v_in 8 // 3a. check the case statements for the respective actuator first. change this if the inlet outlet is swapped
+#define v_out 7 //3b. change this if the inlet outlet is swapped
 #define re_de 1
 
 

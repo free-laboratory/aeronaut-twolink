@@ -8,11 +8,11 @@ BAUD = 115200
 
 # ===== ACTUATOR IDS =====
 # 15, 12 = top
-# 18, 19 = bottom
-ACTUATORS = [19, 15, 18, 12]
+# 18, 20 = bottom
+ACTUATORS = [20, 15, 18, 12]
 
 KEY_TO_ACTUATOR = {
-    "w": 19,
+    "w": 20,
     "a": 15,
     "s": 18,
     "d": 12,
